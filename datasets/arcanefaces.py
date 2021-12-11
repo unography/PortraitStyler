@@ -24,7 +24,7 @@ class ArcaneFaces(Dataset):
         self.images = [os.path.join(
             self.base_path, "faces", f"{f}.jpg") for f in self.base_names]
         self.masks = [os.path.join(
-            self.base_path, "graycomics", f"{f}.jpg") for f in self.base_names]
+            self.base_path, "comics", f"{f}.jpg") for f in self.base_names]
         self.transform = transform
 
     def __len__(self):
@@ -59,13 +59,21 @@ class ArcaneFaces(Dataset):
             image = image[:, :, 0:3]
 
         mask = np.array(mask).astype('float32')
+        if len(mask.shape) == 2:
+            mask = mask[:, :, None]
+        if mask.shape[2] == 1:
+            mask = np.repeat(mask, 3, axis=2)
+        elif mask.shape[2] == 4:
+            mask = mask[:, :, 0:3]
 
         image /= 255.0
         image -= (0.485, 0.456, 0.406)
         image /= (0.229, 0.224, 0.225)
         mask /= 255.0
+        mask -= (0.485, 0.456, 0.406)
+        mask /= (0.229, 0.224, 0.225)
 
-        mask = np.expand_dims(mask, -1)
+        # mask = np.expand_dims(mask, -1)
 
         pad_x = int(self.sz - image.shape[0])
         pad_y = int(self.sz - image.shape[1])
