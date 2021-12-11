@@ -13,6 +13,8 @@ from collections import namedtuple
 
 import pytorch_lightning as pl
 from models.u2net import U2NET_lite, U2NET_full
+from models.u2net_old import U2NETP
+
 from datasets.arcanefaces import ArcaneFaces
 
 class LitBase(pl.LightningModule):
@@ -25,7 +27,7 @@ class LitBase(pl.LightningModule):
 
     def prepare_data(self):
         self.train_dataset = ArcaneFaces(
-            base_path=self.cfg["train_base_path"], mode="train", sz=320,rc=288)
+            base_path=self.cfg["train_base_path"], mode="train", sz=320,rc=256)
 
     def forward(self, x):
         return self.model(x)
@@ -132,19 +134,25 @@ if __name__ == "__main__":
     pl.seed_everything(42)
 
     config = dict(
-        train_base_path="/Drive/MyDrive/datasets/faces2comics",
+        train_base_path="/content/faces2comics",
         batch_size=16,
         epochs=200,
         lr=0.001,
         num_workers=2
     )
 
-    u2net = U2NET_full()
+    # u2net = U2NET_full()
     # u2net = U2NET_lite()
-    pl_model = LitBase(config, u2net) 
+    u2net = U2NETP(in_ch=3, out_ch=3)
+    pl_model = LitBase(config, u2net)
+
+    ckpt_dir = "/Drive/MyDrive/faces2comics_wts"
+    if not os.path.isdir(ckpt_dir):
+        os.makedirs(ckpt_dir)
 
     train_checkpoint_train_loss = pl.callbacks.ModelCheckpoint(
-        dirpath=".",
+        # dirpath=".",
+        dirpath=ckpt_dir,
         monitor="train_loss",
         filename="u2net_train_loss_{epoch:04d}_{train_loss:.2f}",
         mode="min"
@@ -153,18 +161,18 @@ if __name__ == "__main__":
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, callbacks=[model_checkpoint], process_position=2)
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, callbacks=[model_checkpoint], process_position=2, precision=16, accelerator='ddp')
     # trainer = pl.Trainer(max_epochs=epochs, callbacks=[model_checkpoint], precision=16, amp_backend='apex', amp_level='O2', gpus=4)
-    # trainer = pl.Trainer(
-    #     max_epochs=config["epochs"],
-    #     callbacks=[train_checkpoint_train_loss, CheckpointEveryNSteps(1200)],
-    #     # precision=16,
-    #     gpus=-1,
-    #     accelerator='ddp',
-    # )
     trainer = pl.Trainer(
         max_epochs=config["epochs"],
         callbacks=[train_checkpoint_train_loss, CheckpointEveryNSteps(1200)],
         # precision=16,
+        gpus=-1,
+        # accelerator='ddp',
     )
+    # trainer = pl.Trainer(
+    #     max_epochs=config["epochs"],
+    #     callbacks=[train_checkpoint_train_loss, CheckpointEveryNSteps(1200)],
+    #     # precision=16,
+    # )
 
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, deterministic=True, precision=16, callbacks=[model_checkpoint], accelerator='ddp', progress_bar_refresh_rate=100)
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, deterministic=True, precision=16, callbacks=[model_checkpoint], accelerator='ddp', amp_backend='apex', amp_level='02')
