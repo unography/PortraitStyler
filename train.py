@@ -27,7 +27,9 @@ class LitBase(pl.LightningModule):
 
     def prepare_data(self):
         self.train_dataset = ArcaneFaces(
-            base_path=self.cfg["train_base_path"], mode="train", sz=320,rc=256)
+            base_path=self.cfg["train_base_path"], mode="train", sz=88,rc=64)
+        self.val_dataset = ArcaneFaces(
+            base_path=self.cfg["val_base_path"], mode="val",sz=88)
 
     def forward(self, x):
         return self.model(x)
@@ -57,6 +59,11 @@ class LitBase(pl.LightningModule):
         train_loader = torch.utils.data.DataLoader(
             self.train_dataset, batch_size=self.cfg["batch_size"], shuffle=True, drop_last=True, num_workers=self.cfg["num_workers"])
         return train_loader
+    
+    def val_dataloader(self):
+        val_loader = torch.utils.data.DataLoader(
+            self.val_dataset, batch_size=1, num_workers=self.cfg["num_workers"])
+        return val_loader
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -89,6 +96,20 @@ class LitBase(pl.LightningModule):
         self.log('train_loss', loss)
         # wandb.log('train_loss', loss)
         return loss
+    
+    def validation_step(self, batch, batch_idx):
+        # only taking loss of final output here
+        inputs, labels = batch
+
+        d0, d1, d2, d3, d4, d5, d6 = self(inputs)
+        loss2, loss = self.multi_loss_fusion(
+            d0, d1, d2, d3, d4, d5, d6, labels)
+
+        val_mae = self.mae_loss(torch.sigmoid(d0), labels)
+        self.log('val_loss', loss2)
+        self.log('val_mae', val_mae)
+        # wandb.log('val_loss', loss2)
+        return loss2
 
 
 class CheckpointEveryNSteps(pl.Callback):
@@ -134,8 +155,9 @@ if __name__ == "__main__":
     pl.seed_everything(42)
 
     config = dict(
-        train_base_path="/content/faces2comics",
-        batch_size=16,
+        train_base_path="/content/faces2comics/train",
+        val_base_path="/content/faces2comics/val",
+        batch_size=64,
         epochs=200,
         lr=0.001,
         num_workers=2
@@ -157,13 +179,20 @@ if __name__ == "__main__":
         filename="u2net_train_loss_{epoch:04d}_{train_loss:.2f}",
         mode="min"
     )
+    val_checkpoint = pl.callbacks.ModelCheckpoint(
+        dirpath=ckpt_dir,
+        monitor="val_mae",
+        filename="u2net_{epoch:04d}_{train_loss:.2f}_{val_loss:.2f}_{val_mae:.4f}",
+        save_top_k=500,
+        mode="min",
+    )
     
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, callbacks=[model_checkpoint], process_position=2)
     # trainer = pl.Trainer(max_epochs=epochs, gpus=-1, callbacks=[model_checkpoint], process_position=2, precision=16, accelerator='ddp')
     # trainer = pl.Trainer(max_epochs=epochs, callbacks=[model_checkpoint], precision=16, amp_backend='apex', amp_level='O2', gpus=4)
     trainer = pl.Trainer(
         max_epochs=config["epochs"],
-        callbacks=[train_checkpoint_train_loss, CheckpointEveryNSteps(1200)],
+        callbacks=[train_checkpoint_train_loss, val_checkpoint, CheckpointEveryNSteps(1200)],
         # precision=16,
         gpus=-1,
         # accelerator='ddp',
