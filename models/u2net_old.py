@@ -20,7 +20,7 @@ class REBNCONV(nn.Module):
 ## upsample tensor 'src' to have the same spatial size with tensor 'tar'
 def _upsample_like(src,tar):
 
-    src = F.upsample(src,size=tar.shape[2:],mode='bilinear')
+    src = F.upsample(src,size=tar.shape[2:],mode='bilinear', align_corners=False)
 
     return src
 
@@ -417,7 +417,8 @@ class U2NET(nn.Module):
 
         d0 = self.outconv(torch.cat((d1,d2,d3,d4,d5,d6),1))
 
-        return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)
+        # return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)
+        return F.tanh(d0), F.tanh(d1), F.tanh(d2), F.tanh(d3), F.tanh(d4), F.tanh(d5), F.tanh(d6)
 
 ### U^2-Net small ###
 class U2NETP(nn.Module):
@@ -522,4 +523,4 @@ class U2NETP(nn.Module):
 
         d0 = self.outconv(torch.cat((d1,d2,d3,d4,d5,d6),1))
 
-        return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)
+        return F.tanh(d0), F.tanh(d1), F.tanh(d2), F.tanh(d3), F.tanh(d4), F.tanh(d5), F.tanh(d6)

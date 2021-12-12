@@ -105,7 +105,7 @@ class LitBase(pl.LightningModule):
         loss2, loss = self.multi_loss_fusion(
             d0, d1, d2, d3, d4, d5, d6, labels)
 
-        val_mae = self.mae_loss(torch.sigmoid(d0), labels)
+        val_mae = self.mae_loss(d0, labels)
         self.log('val_loss', loss2)
         self.log('val_mae', val_mae)
         # wandb.log('val_loss', loss2)
