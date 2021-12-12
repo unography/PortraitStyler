@@ -16,6 +16,7 @@ from models.u2net import U2NET_lite, U2NET_full
 from models.u2net_old import U2NETP
 
 from datasets.arcanefaces import ArcaneFaces
+from datetime import datetime
 
 class LitBase(pl.LightningModule):
     def __init__(self, cfg, model):
@@ -108,6 +109,15 @@ class LitBase(pl.LightningModule):
         val_mae = self.mae_loss(d0, labels)
         self.log('val_loss', loss2)
         self.log('val_mae', val_mae)
+
+        val_img = d0.squeeze().cpu().numpy()
+        val_img = val_img.transpose((1, 2, 0))
+        val_img *= (0.229, 0.224, 0.225)
+        val_img += (0.485, 0.456, 0.406)
+        val_img *= 255.0
+        val_img = val_img.astype(np.uint8)
+        Image.fromarray(val_img).save(f"{self.cfg['res_dir']}/{str(datetime.now())}.jpg")
+
         # wandb.log('val_loss', loss2)
         return loss2
 
@@ -154,13 +164,21 @@ if __name__ == "__main__":
 
     pl.seed_everything(42)
 
+    ckpt_dir = "/Drive/MyDrive/faces2comics_wts"
+    if not os.path.isdir(ckpt_dir):
+        os.makedirs(ckpt_dir)
+    res_dir = "/Drive/MyDrive/faces2comics_results"
+    if not os.path.isdir(res_dir):
+        os.makedirs(res_dir)
     config = dict(
         train_base_path="/content/faces2comics/train",
         val_base_path="/content/faces2comics/val",
         batch_size=64,
         epochs=200,
         lr=0.001,
-        num_workers=2
+        num_workers=2,
+        ckpt_dir=ckpt_dir,
+        res_dir=res_dir
     )
 
     # u2net = U2NET_full()
@@ -168,9 +186,7 @@ if __name__ == "__main__":
     u2net = U2NETP(in_ch=3, out_ch=3)
     pl_model = LitBase(config, u2net)
 
-    ckpt_dir = "/Drive/MyDrive/faces2comics_wts"
-    if not os.path.isdir(ckpt_dir):
-        os.makedirs(ckpt_dir)
+    
 
     train_checkpoint_train_loss = pl.callbacks.ModelCheckpoint(
         # dirpath=".",
@@ -195,6 +211,7 @@ if __name__ == "__main__":
         callbacks=[train_checkpoint_train_loss, val_checkpoint, CheckpointEveryNSteps(1200)],
         # precision=16,
         gpus=-1,
+        check_val_every_n_epoch=10
         # accelerator='ddp',
     )
     # trainer = pl.Trainer(
