@@ -28,9 +28,9 @@ class LitBase(pl.LightningModule):
 
     def prepare_data(self):
         self.train_dataset = ArcaneFaces(
-            base_path=self.cfg["train_base_path"], mode="train", sz=88,rc=64)
+            base_path=self.cfg["train_base_path"], mode="train", sz=600,rc=512)
         self.val_dataset = ArcaneFaces(
-            base_path=self.cfg["val_base_path"], mode="val",sz=88)
+            base_path=self.cfg["val_base_path"], mode="val",sz=1024)
 
     def forward(self, x):
         return self.model(x)
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     config = dict(
         train_base_path="/content/faces2comics/train",
         val_base_path="/content/faces2comics/val",
-        batch_size=64,
+        batch_size=8,
         epochs=200,
         lr=0.001,
         num_workers=2,
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     u2net = U2NETP(in_ch=3, out_ch=3)
     pl_model = LitBase(config, u2net)
 
-    
+    pl_model = pl_model.load_from_checkpoint(os.path.join(ckpt_dir, "u2net_epoch=0009_train_loss=3.64_val_loss=0.74_val_mae=0.7445.ckpt"), cfg=config, model=u2net)
 
     train_checkpoint_train_loss = pl.callbacks.ModelCheckpoint(
         # dirpath=".",
