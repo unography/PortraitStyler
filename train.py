@@ -186,7 +186,7 @@ if __name__ == "__main__":
     u2net = U2NETP(in_ch=3, out_ch=3)
     pl_model = LitBase(config, u2net)
 
-    pl_model = pl_model.load_from_checkpoint(os.path.join(ckpt_dir, "N-Step-Checkpoint_26_30000.ckpt"), cfg=config, model=u2net)
+    # pl_model = pl_model.load_from_checkpoint(os.path.join(ckpt_dir, "N-Step-Checkpoint_26_30000.ckpt"), cfg=config, model=u2net)
 
     train_checkpoint_train_loss = pl.callbacks.ModelCheckpoint(
         # dirpath=".",
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         callbacks=[train_checkpoint_train_loss, val_checkpoint, CheckpointEveryNSteps(1200)],
         # precision=16,
         gpus=-1,
-        check_val_every_n_epoch=10
+        check_val_every_n_epoch=5
         # accelerator='ddp',
     )
     # trainer = pl.Trainer(
