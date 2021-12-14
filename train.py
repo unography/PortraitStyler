@@ -37,28 +37,28 @@ class LitBase(pl.LightningModule):
 
     def train_dataloader(self):
         
-        # def collate_fn(batch):
-        #     imgs, masks = [list(item) for item in zip(*batch)]
-        #     size = [160, 192, 224, 256, 288][np.random.randint(0, 5)]
-        #     w = size # imgs[0].size()[1]
-        #     h = size # imgs[0].size()[2]
-        #     len_imgs = len(imgs)
-        #     tensor = torch.zeros((len_imgs, 3, h, w), dtype=torch.float32)
-        #     targets = torch.zeros((len_imgs, 1, h, w), dtype=torch.float32)
-        #     for i, img in enumerate(imgs):
-        #         img = img.unsqueeze(0)
-        #         out = F.interpolate(img, size=(w, h)) #img
-        #         out = out.squeeze(0)
-        #         mask = masks[i].unsqueeze(0)
-        #         out_m = F.interpolate(mask, size=(w, h)) #img
-        #         out_m = out_m.squeeze(0)
-        #         tensor[i] += out
-        #         targets[i] += out_m
-        #     return tensor, targets
+        def collate_fn(batch):
+            imgs, masks = [list(item) for item in zip(*batch)]
+            size = [64, 128, 256, 512][np.random.randint(0, 4)]
+            w = size # imgs[0].size()[1]
+            h = size # imgs[0].size()[2]
+            len_imgs = len(imgs)
+            tensor = torch.zeros((len_imgs, 3, h, w), dtype=torch.float32)
+            targets = torch.zeros((len_imgs, 3, h, w), dtype=torch.float32)
+            for i, img in enumerate(imgs):
+                img = img.unsqueeze(0)
+                out = F.interpolate(img, size=(w, h)) #img
+                out = out.squeeze(0)
+                mask = masks[i].unsqueeze(0)
+                out_m = F.interpolate(mask, size=(w, h)) #img
+                out_m = out_m.squeeze(0)
+                tensor[i] += out
+                targets[i] += out_m
+            return tensor, targets
 
-        # train_loader = torch.utils.data.DataLoader(self.train_dataset, collate_fn=collate_fn, batch_size=self.cfg['batch_size'], shuffle=True, drop_last=True, num_workers=4)
-        train_loader = torch.utils.data.DataLoader(
-            self.train_dataset, batch_size=self.cfg["batch_size"], shuffle=True, drop_last=True, num_workers=self.cfg["num_workers"])
+        train_loader = torch.utils.data.DataLoader(self.train_dataset, collate_fn=collate_fn, batch_size=self.cfg['batch_size'], shuffle=True, drop_last=True, num_workers=self.cfg["num_workers"])
+        # train_loader = torch.utils.data.DataLoader(
+        #     self.train_dataset, batch_size=self.cfg["batch_size"], shuffle=True, drop_last=True, num_workers=self.cfg["num_workers"])
         return train_loader
     
     def val_dataloader(self):
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     u2net = U2NETP(in_ch=3, out_ch=3)
     pl_model = LitBase(config, u2net)
 
-    pl_model = pl_model.load_from_checkpoint(os.path.join(ckpt_dir, "u2net_epoch=0009_train_loss=3.64_val_loss=0.74_val_mae=0.7445.ckpt"), cfg=config, model=u2net)
+    pl_model = pl_model.load_from_checkpoint(os.path.join(ckpt_dir, "N-Step-Checkpoint_26_30000.ckpt"), cfg=config, model=u2net)
 
     train_checkpoint_train_loss = pl.callbacks.ModelCheckpoint(
         # dirpath=".",
